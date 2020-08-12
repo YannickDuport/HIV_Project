@@ -3,3 +3,4 @@
 # don't store simulation data/results
 data/fasta
 results/simulation
+

@@ -4,13 +4,13 @@ from scripts.helpers import timeit
 # FIXME: Case of dying population not being handled yet
 
 class Simulation:
-    def __init__(self, size, length, p_repl, p_mut, stable_pop_size=True):
+    def __init__(self, size, length, p_repl, p_mut, initial_seq=None, stable_pop_size=True):
         self.size = [size]
         self.length = length
         self.p_replication = p_repl
         self.p_mutation = p_mut
         self.stable_pop_size = stable_pop_size
-        self.population = np.zeros(shape=(size, length))
+        self.population = self.create_population(initial_seq)
         self.time = 0
         self.t_dict = {
             0: "A",
@@ -19,7 +19,12 @@ class Simulation:
             3: "G"
         }
 
-    @timeit
+    def create_population(self, seq):
+        if seq is None:
+            return np.zeros(shape=(self.size, self.length))
+        else:
+            return np.repeat([seq], repeats=self.size, axis=0)
+
     def _replication(self):
         """ Selects individuals for replication
 
@@ -44,7 +49,6 @@ class Simulation:
         new_population = np.repeat(self.population[selections], 2, axis=0)
         return new_population
 
-    @timeit
     def _mutation(self, population):
         """ Introduces mutations into a population
         Number of new mutation are drawn from a poisson distribution centered at mutation_rate * number_of_sites. The
@@ -90,7 +94,6 @@ class Simulation:
 
         return population
 
-    @timeit
     def _update(self, population):
         """ Updates class values for a new population
         Updates the population and population_size
@@ -105,17 +108,15 @@ class Simulation:
         # change time
         self.time += 1
 
-    @timeit
     def evolution(self, result_path, infix):
         """ Runs one iteration of evolution (replication, mutation)
         """
         parents = self._replication()
         new_pop = self._mutation(parents)
         self._update(new_pop)
-        print(f"population size: {self.size[-1]}")
+        # print(f"population size: {self.size[-1]}")
         self._writeFasta(result_path, infix)
 
-    @timeit
     def _writeFasta(self, result_path, infix=""):
         filename = f"population_{infix}{self.time:03}.fasta"
         filepath = result_path / filename
