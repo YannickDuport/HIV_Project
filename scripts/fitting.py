@@ -1,28 +1,28 @@
-from itertools import cycle
+""" Create a OLS model """
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import lasso_path, enet_path
+from sklearn.model_selection import train_test_split
 
 from scripts.msa import MSA_collection
 from scripts.helpers import DATA_PATH
 
-data_train_path = DATA_PATH / "fasta" / "training"
-data_test_path = DATA_PATH / "fasta" / "testing"
+data_path = DATA_PATH / "fasta"
 
 # create MSA
-msa_train = MSA_collection(data_train_path)
-msa_test = MSA_collection(data_test_path)
+msa = MSA_collection(data_path)
 
 # extract time from filenames
-t_train = [int(name.stem.split('_')[-1][1:]) for name in list(data_train_path.glob('*.fasta'))]
-t_test = [int(name.stem.split('_')[-1][1:]) for name in list(data_test_path.glob('*.fasta'))]
-t_train.sort()
-t_test.sort()
+t = [int(name.stem.split('_')[-1][1:]) for name in list(data_path.glob('*.fasta'))]
+t.sort()
 
 # calculate diversities
-div_train = np.array([msa.diversity for msa in msa_train.msa_collection])
-div_test = np.array([msa.diversity for msa in msa_test.msa_collection])
+div = np.array([msa.diversity for msa in msa.msa_collection])
+
+# split data into training and testing set (set random_state for reproducibility)
+div_train, div_test, t_train, t_test = train_test_split(
+    div, t, test_size=0.3) #, random_state=10)
 
 
 #########################
@@ -45,7 +45,7 @@ for i in range(len(div_test)):
 fig1 = plt.figure()
 plt.ylabel('t estimate')
 plt.xlabel('t')
-plt.title("linear regression fit")
+plt.title("OLS")
 plt.scatter(t_train, t_est_train, color='tab:blue', label="training set")
 plt.scatter(t_test, t_est_test, color='tab:green', label='testing set')
 plt.plot(t, t, color="black")

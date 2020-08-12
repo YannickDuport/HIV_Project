@@ -1,35 +1,51 @@
+"""
+Perform cross-validatio for lasso- (lasso) and elastic net (elastic_net) regression
+Compute regularization paths for lasso and elastic net (regularization_path)
+"""
+
 from itertools import cycle
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import lasso_path, enet_path, ElasticNetCV
+from sklearn.linear_model import lasso_path, enet_path, ElasticNetCV, LassoCV
+from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import StandardScaler, scale
+from sklearn.model_selection import train_test_split
 
 from scripts.msa import MSA_collection
 from scripts.helpers import DATA_PATH
 
-plot = False
+regularization_path = True
+lasso = True
+elastic_net = True
+scale_data = False
+scaler = StandardScaler
 
-data_train_path = DATA_PATH / "fasta" / "training"
-data_test_path = DATA_PATH / "fasta" / "testing"
+data_path = DATA_PATH / "fasta"
 
 # create MSA
-msa_train = MSA_collection(data_train_path)
-msa_test = MSA_collection(data_test_path)
+msa = MSA_collection(data_path)
 
 # extract time from filenames
-t_train = [int(name.stem.split('_')[-1][1:]) for name in list(data_train_path.glob('*.fasta'))]
-t_test = [int(name.stem.split('_')[-1][1:]) for name in list(data_test_path.glob('*.fasta'))]
-t_train.sort()
-t_test.sort()
+t = [int(name.stem.split('_')[-1][1:]) for name in list(data_path.glob('*.fasta'))]
+t.sort()
 
 # calculate diversities
-div_train = np.array([msa.diversity for msa in msa_train.msa_collection])
-div_test = np.array([msa.diversity for msa in msa_test.msa_collection])
+div = np.array([msa.diversity for msa in msa.msa_collection])
 
-if plot:
-    #######################################
-    # fit elasitc net- & lasso regression
-    #######################################
+# split data into training and testing set (set random_state for reproducibility)
+div_train, div_test, t_train, t_test = train_test_split(
+    div, t, test_size=0.3, random_state=10)
+
+# scale data
+if scale_data:
+    div_train = scale(div_train, with_mean=True)
+    div_test = scale(div_test, with_mean=True)
+
+
+#########################################################
+# compute regularization paths for lasso & elastic net
+#########################################################
+if regularization_path:
     eps = 5e-3
     print("Computing regularization path using the lasso...")
     alphas_lasso, coefs_lasso, _ = lasso_path(
@@ -73,39 +89,99 @@ if plot:
     plt.axis('tight')
     plt.show()
 
-from sklearn.metrics import mean_squared_error
-model = ElasticNetCV(l1_ratio=[0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 0.99],
-                     #n_alphas=500,
-                     alphas=np.logspace(-5, -0.3, 500),
-                     cv=5,
-                     fit_intercept=False,
-                     max_iter=6000,
-                     n_jobs=7)
-model.fit(X=div_train, y=t_train)
+#################################
+# Lasso Cross Validation
+#################################
+if lasso:
+    print('*'*80)
+    print("performing lasso cross-validation")
+    print('*'*80)
 
-# intercept = model.intercept_
-# coeff = model.coef_
-# t_est_train = []
-# print(intercept)
-# print(coeff)
-# for i in range(len(div_train)):
-#     t_est_train.append(intercept + np.matmul(div_train[i], coeff))
-#     print(f"t = {t_train[i]};  t_est = {t_est_train[-1]}")
-#
-# t_est_test = []
-# for i in range(len(div_test)):
-#     t_est_test.append(intercept + np.matmul(div_test[i], coeff))
-#     print(f"t = {t_test[i]};  t_est = {t_est_test[-1]}")
+    # perform cross-validation and model fit
+    model_lasso = LassoCV(
+        eps=1e-3,
+        alphas=np.logspace(-3, 0, 100),
+        # n_alphas=100,
+        cv=5,
+        fit_intercept=False,
+        max_iter=4000,
+        n_jobs=7
+    )
+    model_lasso.fit(X=div_train, y=t_train)
 
-print(f"intercept: {model.intercept_}")
-print(f"alpha: {model.alpha_}")
-print(f"l1 ratio: {model.l1_ratio_}")
-train_pred = model.predict(div_train)
-test_pred = model.predict(div_test)
-print(f"mean squared error: {mean_squared_error(y_true=t_test,y_pred=test_pred)}")
+    # plot alpha vs. mse
+    fig = plt.figure()
+    plt.errorbar(model_lasso.alphas_, model_lasso.mse_path_.mean(axis=1),
+                 yerr=model_lasso.mse_path_.std(axis=1))
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel("alpha")
+    plt.ylabel("mse")
+    plt.show()
 
-fig = plt.figure()
-plt.plot(np.arange(100), np.arange(100), color='black')
-plt.scatter(t_train, train_pred, color='tab:blue')
-plt.scatter(t_test, test_pred, color="tab:green")
-plt.show()
+    # make predictions based on model
+    train_pred = model_lasso.predict(div_train)
+    test_pred = model_lasso.predict(div_test)
+    mse = mean_squared_error(t_test, test_pred)
+    print(f"alpha: {model_lasso.alpha_}")
+    print(f"mean squared error: {mse}")
+
+    # plot predictions
+    fig1 = plt.figure()
+    plt.scatter(t_train, train_pred, color='tab:blue', label="training set")
+    plt.scatter(t_test, test_pred, color="tab:green", label="testing set")
+    plt.ylabel('t estimate')
+    plt.xlabel('t')
+    plt.title("Lasso")
+    if not scale_data:
+        plt.plot(np.arange(100), np.arange(100), color='black')
+        plt.annotate(f"alpha = {round(model_lasso.alpha_, 3)}", xy=(0, 80))
+        plt.annotate(f"mse = {round(mse, 1)}", xy=(0, 70))
+    plt.legend()
+    fig1.show()
+
+
+#################################
+# Elastic Net Cross Validation
+#################################
+if elastic_net:
+    print('\n')
+    print('*'*80)
+    print("performing elastic net cross-validation")
+    print('*'*80)
+
+    # perform cross validation and fit model
+    model_en = ElasticNetCV(
+        l1_ratio=[0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 0.99],
+        # n_alphas=500,
+        alphas=np.logspace(-3, 0, 500),
+        cv=5,
+        fit_intercept=False,
+        max_iter=4000,
+        n_jobs=7
+    )
+    model_en.fit(X=div_train, y=t_train)
+
+
+    # make prediction based on model
+    train_pred = model_en.predict(div_train)
+    test_pred = model_en.predict(div_test)
+    mse = mean_squared_error(t_test, test_pred)
+    print(f"alpha: {model_en.alpha_}")
+    print(f"l1 ratio: {model_en.l1_ratio_}")
+    print(f"mean squared error: {mse}")
+
+    # plot predictions
+    fig1 = plt.figure()
+    plt.scatter(t_train, train_pred, color='tab:blue', label="training set")
+    plt.scatter(t_test, test_pred, color="tab:green", label="testing set")
+    plt.ylabel('t estimate')
+    plt.xlabel('t')
+    plt.title("Elastic Net")
+    if not scale_data:
+        plt.plot(np.arange(100), np.arange(100), color='black')
+        plt.annotate(f"alpha = {round(model_en.alpha_, 3)}", xy=(0, 100))
+        plt.annotate(f"l1-ratio = {model_en.l1_ratio_}", xy=(0, 90))
+        plt.annotate(f"mse = {round(mse, 1)}", xy=(0, 80))
+    plt.legend()
+    fig1.show()
