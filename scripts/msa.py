@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from pathlib import Path
 
 
@@ -6,15 +7,24 @@ class MSA_collection:
 
     def __init__(self, filepath):
         self.filepath = filepath
-        self.msa_collection = self._create_MSA()
+        self._create_MSA()
 
     def _create_MSA(self):
         msas = []
+        data = []
         files = list(Path.glob(self.filepath, "*.fasta"))
         files.sort()
         for f in files:
-            msas.append(MSA(f))
-        return np.array(msas)
+            msa = MSA(f)
+            msas.append(msa)
+
+            name = msa.filepath.stem
+            time = msa.time
+            div = msa.diversity
+            data.append([name, time, div])
+
+        self.msa_collection = np.array(msas)
+        self.info = pd.DataFrame(data, columns=['name', 'time', 'diversity_per_site'])
 
 
 class MSA:
@@ -23,6 +33,7 @@ class MSA:
         self.filepath = filepath
         self.msa = self._read_file()
         self.diversity = self.diversity_per_site()
+        self.time = int(self.filepath.stem.split('_')[-1][1:])
 
     def _read_file(self):
         msa = []

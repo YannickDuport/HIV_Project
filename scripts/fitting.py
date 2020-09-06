@@ -22,7 +22,7 @@ div = np.array([msa.diversity for msa in msa.msa_collection])
 
 # split data into training and testing set (set random_state for reproducibility)
 div_train, div_test, t_train, t_test = train_test_split(
-    div, t, test_size=0.3) #, random_state=10)
+    div, t, test_size=0.3, random_state=10)
 
 
 #########################
