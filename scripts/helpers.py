@@ -1,6 +1,11 @@
-from pathlib import Path
 import numpy as np
 import time
+
+from itertools import chain, combinations
+from pathlib import Path
+
+from sklearn.metrics import mean_squared_error
+
 
 BASE_PATH = Path(__file__).parent.parent
 DATA_PATH = BASE_PATH / "data"
@@ -41,6 +46,50 @@ def calc_aic(x, y, coefficients):
     aic = n*mse/sigma + 2*df
     return aic
 
+def calc_aic_1d(x, y, coefficients, weights):
+    n = len(y)
+    sigma = np.var(y)
+    df = np.count_nonzero(coefficients, axis=0)
 
-def calc_aic_depr(n, p, mse):
-    return n * np.log(np.mean(mse)) + 2 * p
+    y_hat = np.dot(x, coefficients)
+    mse = mean_squared_error(y, y_hat, sample_weight=weights)
+    aic = n*mse/sigma + 2*df
+    return aic
+
+
+def calc_aic_depr(x, y, coefficients):
+    n = len(y)
+    df = np.count_nonzero(coefficients, axis=0)
+
+    y_2d = [[k] for k in y]
+    y_hat = np.dot(x, coefficients)
+    residuals = y_2d - y_hat
+
+    print(df)
+    print(n*np.log(np.power(residuals, 2).sum(axis=0)))
+    return n * np.log(np.power(residuals, 2).sum(axis=0)) + (2*np.power(df, 2) + 2*df) / (n - df -1)
+    # return n * np.log(np.power(residuals, 2).sum(axis=0)) + 2 * df
+
+
+def powerset(iterable, size):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, size))
+
+def split(lst, n, random_state):
+    """ Splits lst randomly into n chunks of approx. equal size"""
+
+    # set seed for reproducability
+    if random_state is not None:
+        np.random.seed(random_state)
+
+    # shuffle indices to introduce randomness
+    idx = list(range(len(lst)))
+    np.random.shuffle(idx)
+
+    # split into n subsets
+    k, m = divmod(len(idx), n)
+    idx_chunks = [idx[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n)]
+
+    return idx_chunks
+    # return lst[[idx_chunks]]

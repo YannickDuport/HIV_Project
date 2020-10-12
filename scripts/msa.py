@@ -5,11 +5,11 @@ from pathlib import Path
 
 class MSA_collection:
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, save=False):
         self.filepath = filepath
-        self._create_MSA()
+        self._create_MSA(save)
 
-    def _create_MSA(self):
+    def _create_MSA(self, save):
         msas = []
         data = []
         files = list(Path.glob(self.filepath, "*.fasta"))
@@ -21,11 +21,21 @@ class MSA_collection:
             name = msa.filepath.stem
             time = msa.time
             div = msa.diversity
-            data.append([name, time, div])
+            # weight = 1
+            weight = np.random.choice([0.5, 1, 20])
+            data.append([name, time, weight, div]) # sample weight currently hard-coded at 1 (no sample weights)
 
         self.msa_collection = np.array(msas)
-        self.info = pd.DataFrame(data, columns=['name', 'time', 'diversity_per_site'])
+        self.info = pd.DataFrame(data, columns=['name', 'time', "sample_weight", 'diversity_per_site'])
 
+        if save:
+            savepath = self.filepath / "diversities.csv"
+            print(f"saving diversities under '{savepath}'")
+
+            data_save = [l[:-1] + l[-1] for l in data]
+            site_names = [f"div_site_{i}" for i in range(len(self.info.diversity_per_site[0]))]
+            df_save = pd.DataFrame(data_save, columns=['name', 'time', 'sample_weight']+site_names)
+            df_save.to_csv(savepath, header=True, index=False)
 
 class MSA:
 
