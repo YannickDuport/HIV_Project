@@ -1,12 +1,9 @@
-import copy
-
-from itertools import cycle
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import ray
 
-from helpers import split
+from helpers import split, timeit
 
 from decimal import Decimal
 from matplotlib.colors import LogNorm
@@ -90,9 +87,11 @@ class linear_model:
 
         return mses
 
-    def crossValidation_parallel(self, alphas, l1_ratios, folds=10, random_state=None, n_jobs=None, **kwargs):
+    @timeit
+    def crossValidation_parallel(self, alphas, l1_ratios, folds=10, random_state=None, n_jobs=5, **kwargs):
         print("start Cross Validation")
 
+        # initialize ray
         ray.init(num_cpus=n_jobs)
 
         # split dataset into n subsets
@@ -151,7 +150,7 @@ class linear_model:
 
         return alpha_min, mse_min
 
-
+    @timeit
     def crossValidation(self, alphas, l1_ratios, folds=5, random_state=None, **kwargs):
         print("start Cross Validation")
 
@@ -213,7 +212,7 @@ class linear_model:
 
         return alpha_min, mse_min
 
-
+    @timeit
     def lassoAIC(self, alphas=None, **kwargs):
         print('*' * 80)
         print("performing lasso AIC model selection")
