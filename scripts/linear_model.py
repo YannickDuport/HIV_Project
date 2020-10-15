@@ -48,7 +48,7 @@ class linear_model:
         elif type == "lassoAIC":
             self.lassoAIC(alphas=alphas, **kwargs)
         elif type == "elasticNetCV":
-            self.crossValidation(alphas=alphas, l1_ratios=l1_ratios, **kwargs)
+            self.crossValidation_parallel(alphas=alphas, l1_ratios=l1_ratios, **kwargs)
 
         # Deprecated (only used as validation of other methods)
         elif type == "lassoCV_depr":
@@ -65,7 +65,17 @@ class linear_model:
                 f"'type' {type} is not a valid option. 'type' must be 'lassoCV', 'lassoAIC' or 'elasticNetCV"
             )
 
-    def _elasticNet(self, x_train, y_train, weights_train, x_test, y_test, weights_test, alphas, l1_ratios, **kwargs):
+    @ray.remote
+    def _elasticNet(self, idx_subset, alphas, l1_ratios, **kwargs):
+        print(idx_subset)
+        # create training and testing set for current fold
+        x_train = np.delete(self.x_train, idx_subset, axis=0)
+        x_test = self.x_train[idx_subset]
+        y_train = np.delete(self.y_train, idx_subset, axis=0)
+        y_test = self.y_train[idx_subset]
+        weights_train = np.delete(self.weights_train, idx_subset)
+        weights_test = self.weights_train[idx_subset]
+
         mses = []
         for ratio in l1_ratios:
             mses.append([])
@@ -80,6 +90,67 @@ class linear_model:
 
         return mses
 
+    def crossValidation_parallel(self, alphas, l1_ratios, folds=10, random_state=None, n_jobs=None, **kwargs):
+        print("start Cross Validation")
+
+        ray.init(num_cpus=n_jobs)
+
+        # split dataset into n subsets
+        cv_idx_subset = split(self.y_train, folds, random_state)
+
+        # run cross validation to find optimal alpha (and l1 ratio)
+        mses_ids = []
+        for i, idx_subset in enumerate(cv_idx_subset):
+            # create and fit model for current fold
+            mses_ids.append(self._elasticNet.remote(self, idx_subset, alphas, l1_ratios, **kwargs))
+        mses = ray.get(mses_ids)
+
+        # find optimal alpha, l1_ratio and the corresponding mse (by minimizing mse)
+        mses = np.array(mses)
+        mse_per_alpha = mses.mean(axis=0)
+        mse_per_alpha_sd = mses.std(axis=0)
+        idx_min_row, idx_min_col = np.unravel_index(mse_per_alpha.argmin(), mse_per_alpha.shape)
+        mse_min = mse_per_alpha[idx_min_row, idx_min_col] / folds
+        l1_ratio_min = l1_ratios[idx_min_row]
+        alpha_min = alphas[idx_min_col]
+
+        print(f"mse = {mse_min}")
+        print(f"alpha = {alpha_min}")
+        print(f"l1 ratio = {l1_ratio_min}")
+
+        # build and fit model
+        self.model = ElasticNet(alpha=alpha_min, l1_ratio=l1_ratio_min, **kwargs)
+        self.model.fit(X=self.x_train, y=self.y_train, sample_weight=self.weights_train)
+
+        # make predictions based on model
+        y_train_pred = self.model.predict(self.x_train)
+        y_test_pred = self.model.predict(self.x_test)
+        mse_train = mean_squared_error(self.y_train, y_train_pred, sample_weight=self.weights_train)
+        mse_test = mean_squared_error(self.y_test, y_test_pred, sample_weight=self.weights_test)
+
+        method = "Lasso" if l1_ratios == [1] else "ElasticNet"
+        plot_kwargs = {
+            "alpha": alpha_min,
+            "l1_ratio": l1_ratio_min,
+            "mse_train": mse_train,
+            "mse_test": mse_test,
+            "title": f"Weighted {method} CV",
+        }
+        self.plot_predictions(y_train_pred, y_test_pred, **plot_kwargs)
+
+        # plot alpha vs. mse
+        fig = plt.figure()
+        for k, ratio in enumerate(l1_ratios):
+            plt.errorbar(alphas, mse_per_alpha[k], mse_per_alpha_sd[k], label=ratio)
+        plt.xscale("log")
+        plt.yscale("log")
+        plt.xlabel("alpha")
+        plt.ylabel("mse")
+        plt.legend()
+        plt.show()
+
+        return alpha_min, mse_min
+
 
     def crossValidation(self, alphas, l1_ratios, folds=5, random_state=None, **kwargs):
         print("start Cross Validation")
@@ -92,16 +163,8 @@ class linear_model:
         for i, idx_subset in enumerate(cv_idx_subset):
             print(f"Fold {i+1}/{folds}")
 
-            # create training and testing sets for current fold
-            x_train = np.delete(self.x_train, idx_subset, axis=0)
-            x_test = self.x_train[idx_subset]
-            y_train = np.delete(self.y_train, idx_subset, axis=0)
-            y_test = self.y_train[idx_subset]
-            weights_train = np.delete(self.weights_train, idx_subset)
-            weights_test = self.weights_train[idx_subset]
-
             # create and fit model for current fold
-            mse_per_alpha = self._elasticNet(x_train, y_train, weights_train, x_test, y_test, weights_test, alphas, l1_ratios, **kwargs)
+            mse_per_alpha = self._elasticNet(idx_subset, alphas, l1_ratios, **kwargs)
             mses.append(mse_per_alpha)
 
         # find optimal alpha, l1_ratio and the corresponding mse (by minimizing mse)
@@ -459,8 +522,8 @@ weights = np.repeat(1, 105)
 # weights = np.random.sample(105)
 alphas = np.logspace(-3, 0, 100)
 
-# odel.create_model("CV", alphas, **lasso_kwargs)
-model.create_model("CVEN", alphas, **lasso_kwargs)
+# odel.create_model("lassoCV", alphas, **lasso_kwargs)
+model.create_model("elasticNetCV", alphas, **lasso_kwargs)
 # model.create_model('lassoAIC_weight', alphas, **lasso_aic_kwargs)
 
 
