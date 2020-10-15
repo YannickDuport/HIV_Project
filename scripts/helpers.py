@@ -53,7 +53,9 @@ def calc_aic_1d(x, y, coefficients, weights):
 
     y_hat = np.dot(x, coefficients)
     mse = mean_squared_error(y, y_hat, sample_weight=weights)
-    aic = n*mse/sigma + 2*df
+    aic = n*mse/sigma + 2*df    # aic according to Zou, Hastie 2007
+    aic = n*np.log(mse) + 2*df  # aic according to glmnet
+    aic = aic + (2 * df * (df + 1))/(n - df - 1)    # aicc
     return aic
 
 

@@ -11,7 +11,7 @@ from decimal import Decimal
 from matplotlib.colors import LogNorm
 
 from sklearn.linear_model import lasso_path, ElasticNetCV, LassoCV, \
-    LassoLarsIC, Lasso, ElasticNet
+    LassoLarsIC, Lasso, ElasticNet, LassoLars
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
@@ -495,12 +495,13 @@ weights = np.repeat(1, 105)
 # weights = np.random.sample(105)
 alphas = np.logspace(-3, 0, 100)
 
-model.create_model("CV", alphas, **lasso_kwargs)
+# odel.create_model("CV", alphas, **lasso_kwargs)
 model.create_model("CVEN", alphas, **lasso_kwargs)
+# model.create_model('lassoAIC_weight', alphas, **lasso_aic_kwargs)
+
+
 # model.create_model('lassoCV', alphas, **lasso_kwargs)
 # model.create_model('lassoAIC', alphas, **lasso_aic_kwargs)
-model.create_model('lassoAIC_weight', alphas, **lasso_aic_kwargs)
 # model.create_model('lassoLarsAIC', alphas)
 # model.create_model('lassoLarsAIC_weight', alphas, **lasso_aic_kwargs)
 # model.create_model('elasticNetCV', alphas, **en_kwargs)
-# model.create_model('elasticNetAIC')

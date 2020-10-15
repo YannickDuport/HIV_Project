@@ -21,8 +21,8 @@ class MSA_collection:
             name = msa.filepath.stem
             time = msa.time
             div = msa.diversity
-            # weight = 1
-            weight = np.random.choice([0.5, 1, 20])
+            weight = 1
+            # weight = np.random.choice([0.5, 1, 20])
             data.append([name, time, weight, div]) # sample weight currently hard-coded at 1 (no sample weights)
 
         self.msa_collection = np.array(msas)
