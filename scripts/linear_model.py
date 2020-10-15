@@ -4,6 +4,7 @@ from itertools import cycle
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import ray
 
 from helpers import split
 
@@ -42,26 +43,26 @@ class linear_model:
         if l1_ratios is None:
             l1_ratios = [0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 0.99]
 
-        if type == "CV":
+        if type == "lassoCV":
             self.crossValidation(alphas=alphas, l1_ratios=[1], **kwargs)
-        elif type == "CVEN":
-            self.crossValidation(alphas=alphas, l1_ratios=l1_ratios, **kwargs)
-        elif type == "lassoAIC_weight":
-            self.lassoAIC_weight(alphas=alphas, **kwargs)
-
-        # Deprecated (only used as validation of other methods)
-        elif type == "lassoCV":
-            self.lassoCV(alphas=alphas, **kwargs)
         elif type == "lassoAIC":
             self.lassoAIC(alphas=alphas, **kwargs)
-        elif type == "lassoLarsAIC":
-            self.lassoLarsAIC(alphas=alphas, **kwargs)
         elif type == "elasticNetCV":
-            self.elasticNetCV(**kwargs)
+            self.crossValidation(alphas=alphas, l1_ratios=l1_ratios, **kwargs)
+
+        # Deprecated (only used as validation of other methods)
+        elif type == "lassoCV_depr":
+            self.lassoCV_depr(alphas=alphas, **kwargs)
+        elif type == "lassoAIC":
+            self.lassoAIC(alphas=alphas, **kwargs)
+        elif type == "lassoLarsAIC_depr":
+            self.lassoLarsAIC_depr(alphas=alphas, **kwargs)
+        elif type == "elasticNetCV_depr":
+            self.elasticNetCV_depr(**kwargs)
 
         else:
             raise ValueError(
-                f"'type' {type} is not a valid option. 'type' must be 'lassoCV', 'lassoAIC', 'lassoLarsAIC' or 'elasticNetCV"
+                f"'type' {type} is not a valid option. 'type' must be 'lassoCV', 'lassoAIC' or 'elasticNetCV"
             )
 
     def _elasticNet(self, x_train, y_train, weights_train, x_test, y_test, weights_test, alphas, l1_ratios, **kwargs):
@@ -150,7 +151,7 @@ class linear_model:
         return alpha_min, mse_min
 
 
-    def lassoAIC_weight(self, alphas=None, **kwargs):
+    def lassoAIC(self, alphas=None, **kwargs):
         print('*' * 80)
         print("performing lasso AIC model selection")
         print('*' * 80)
@@ -194,7 +195,7 @@ class linear_model:
         self.plot_predictions(y_train_pred, y_test_pred, **plot_kwargs)
 
 
-    def lassoCV(self, alphas, **kwargs):
+    def lassoCV_depr(self, alphas, **kwargs):
         print('*' * 80)
         print("performing lasso cross-validation")
         print('*' * 80)
@@ -233,44 +234,7 @@ class linear_model:
         plt.show()
 
 
-    def lassoAIC(self, alphas,  **kwargs):
-        print('*' * 80)
-        print("performing lasso AIC model selection")
-        print('*' * 80)
-
-        # weights *= (105 / np.sum(weights))
-        # weights = np.sqrt(weights)
-        # x_train_trans = self.x_train * weights[:, None]
-        # y_train_trans = self.y_train * weights
-
-        # alphas_, coeff, _ = lasso_path(X=self.x_train, y=self.y_train, alphas=alphas, **kwargs)
-        alphas_, coeff, _ = lasso_path(X=self.x_train, y=self.y_train, alphas=alphas, **kwargs)
-
-        # calculate aic
-        aic = calc_aic(self.x_train, self.y_train, coeff)
-        # aic = calc_aic_depr(self.x_train, self.y_train, coeff)
-
-        # create model
-        min_idx = np.argmin(aic)
-        self.model = Lasso(alpha=alphas_[min_idx], fit_intercept=False, precompute=False)
-
-        # make model predictions
-        coeff_optimal = coeff[:, np.argmin(aic)]
-        train_pred = np.dot(self.x_train, coeff_optimal)
-        test_pred = np.dot(self.x_test, coeff_optimal)
-        alpha = alphas_[np.argmin(aic)]
-        mse = np.power(self.y_test - test_pred, 2).mean()
-
-        print(coeff)
-
-        # plot AIC vs. alphas
-        self.plot_alpha(alphas_, aic, 'AIC')
-
-        # plot time vs. time predictions
-        self.plot_predictions(train_pred, test_pred, alpha, mse)
-
-
-    def lassoLarsAIC(self, alphas, **kwargs):
+    def lassoLarsAIC_depr(self, alphas, **kwargs):
         self.model = LassoLarsIC(
             criterion='aic',
             fit_intercept=False,
@@ -294,7 +258,7 @@ class linear_model:
         self.plot_predictions(train_pred, test_pred, alpha, mse)
 
 
-    def elasticNetCV(self, weights, **kwargs):
+    def elasticNetCV_depr(self, weights, **kwargs):
         print('*' * 80)
         print("performing elastic net cross-validation")
         print('*' * 80)
