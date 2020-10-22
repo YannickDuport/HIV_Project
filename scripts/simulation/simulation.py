@@ -1,5 +1,5 @@
 import numpy as np
-from scripts.helpers import timeit
+
 
 # FIXME: Case of dying population not being handled yet
 

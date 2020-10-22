@@ -8,13 +8,13 @@ from helpers import split, timeit
 from decimal import Decimal
 from matplotlib.colors import LogNorm
 
-from sklearn.linear_model import lasso_path, ElasticNetCV, LassoCV, \
-    LassoLarsIC, Lasso, ElasticNet, LassoLars
+from sklearn.linear_model import ElasticNetCV, LassoCV, \
+    LassoLarsIC, ElasticNet
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
-from scripts.msa import MSA_collection
-from scripts.helpers import DATA_PATH, calc_aic, calc_aic_1d, calc_aic_depr
+from scripts.linearModel.msa import MSA_collection
+from scripts.linearModel.helpers import DATA_PATH, calc_aic_1d
 
 
 class linear_model:

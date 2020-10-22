@@ -1,9 +1,8 @@
-import glob
 import numpy as np
 
 from pathlib import Path
 from sklearn.linear_model import LinearRegression
-from .helpers import count_lines
+from scripts.linearModel.helpers import count_lines
 
 
 class Count:

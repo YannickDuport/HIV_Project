@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
-from scripts.msa import MSA_collection
-from scripts.helpers import DATA_PATH
+from scripts.linearModel.msa import MSA_collection
+from scripts.linearModel.helpers import DATA_PATH
 
 data_path = DATA_PATH / "fasta"
 

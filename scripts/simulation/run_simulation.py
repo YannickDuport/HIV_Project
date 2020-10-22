@@ -2,7 +2,7 @@ import numpy as np
 
 from pathlib import Path
 
-from scripts.helpers import RESULT_PATH, DATA_PATH
+from scripts.linearModel.helpers import RESULT_PATH, DATA_PATH
 from scripts.simulation import Simulation
 
 

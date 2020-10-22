@@ -6,13 +6,13 @@ Compute regularization paths for lasso and elastic net (regularization_path)
 from itertools import cycle
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.linear_model import lasso_path, enet_path, ElasticNetCV, LassoCV, LassoLarsIC, Lasso, LassoLars, lars_path
+from sklearn.linear_model import lasso_path, enet_path, ElasticNetCV, LassoCV, LassoLarsIC
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler, scale
 from sklearn.model_selection import train_test_split
 
-from scripts.msa import MSA_collection
-from scripts.helpers import DATA_PATH, calc_aic
+from scripts.linearModel.msa import MSA_collection
+from scripts.linearModel.helpers import DATA_PATH, calc_aic
 
 test = 1
 regularization_path = False
