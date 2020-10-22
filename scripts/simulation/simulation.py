@@ -5,6 +5,8 @@ import numpy as np
 
 class Simulation:
     def __init__(self, size, length, p_repl, p_mut, initial_seq=None, stable_pop_size=True):
+        if initial_seq is not None:
+            assert length == len(initial_seq), f"Length of the 'initial_seq' must be equal to 'length': {length} != {len(initial_seq)}"
         self.size = [size]
         self.length = length
         self.p_replication = p_repl
@@ -64,13 +66,13 @@ class Simulation:
 
 
         transitions = {
-            "gamma": { # transition
+            "gamma": {  # transition: A -> T, T -> A, G -> C, C -> G
                 0: 1, 1: 0, 2: 3, 3: 2
             },
-            "alpha":{ # transversion 1
+            "alpha":{   # transversion 1: A -> C, C -> A, T -> G, G -> T
                 0: 2, 2: 0, 1: 3, 3: 1
             },
-            "beta": { # transversion 2
+            "beta": {   # transversion 2: A -> G, G -> A, T -> C, C - T
                 0: 3, 3: 0, 1: 2, 2: 1
             }
         }
