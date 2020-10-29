@@ -9,7 +9,7 @@ from decimal import Decimal
 from matplotlib.colors import LogNorm
 
 from sklearn.linear_model import ElasticNetCV, LassoCV, \
-    LassoLarsIC, ElasticNet
+     LassoLarsIC, ElasticNet
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 

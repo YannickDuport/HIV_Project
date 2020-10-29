@@ -2,10 +2,10 @@
 scripts/__pycache__/
 
 # don't store simulation data/results
-data/fasta
 results/simulation
 
 # don't store sequence data
 data/bam
-
-
+data/sam
+data/counts
+data/fasta
