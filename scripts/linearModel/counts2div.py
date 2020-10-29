@@ -42,7 +42,7 @@ class Count_collection:
         pprint(not_found)
         print('\n')
 
-        colnames = ["name", "time", "weight"]
+        colnames = ["name", "time", "sample_weight"]
         colnames.extend(count.count_df.index)
         self.df_diversity = pd.DataFrame(rows, columns=colnames)
 
