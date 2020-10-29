@@ -7,8 +7,9 @@ from pathlib import Path
 from sklearn.metrics import mean_squared_error
 
 
-BASE_PATH = Path(__file__).parent.parent
+BASE_PATH = Path(__file__).parent.parent.parent
 DATA_PATH = BASE_PATH / "data"
+COUNTS_PATH = DATA_PATH / "counts"
 RESULT_PATH = BASE_PATH / "results"
 
 def timeit(method):

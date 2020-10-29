@@ -6,6 +6,9 @@ results/simulation
 
 # don't store sequence data
 data/bam
-data/sam
 data/counts
 data/fasta
+data/metadata
+data/sam
+
+data/diversities.tsv
