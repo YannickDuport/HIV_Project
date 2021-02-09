@@ -38,7 +38,7 @@ class Count_collection:
 
         # print all samples that were not found in metafile
         from pprint import pprint
-        print(f"\nSample names not found: {len(not_found)}")
+        print(f"\nSample names not found: {len(set(not_found))}")
         pprint(not_found)
         print('\n')
 
